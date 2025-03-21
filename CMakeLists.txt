@@ -46,7 +46,7 @@ target_sources(sqlite3_amalgamation_sources
         "$<INSTALL_INTERFACE:${CMAKE_INCLUDE_INSTALL_DIR}/sqlite3.c>"
 )
 
-instal(TARGETS sqlite3_amalgamation_sources
+install(TARGETS sqlite3_amalgamation_sources
     EXPORT Sqlite3Targets
     COMPONENT AmalgamationSources
     FILE_SET HEADERS
