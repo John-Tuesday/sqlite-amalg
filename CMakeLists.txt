@@ -7,6 +7,10 @@ project(Sqlite3
     HOMEPAGE_URL "sqlite.org"
     VERSION ${SQLITE_VERSION}
 )
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON)
+
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_EXTENSIONS OFF)
@@ -46,16 +50,6 @@ target_sources(sqlite3_amalgamation_sources
         "$<INSTALL_INTERFACE:${CMAKE_INCLUDE_INSTALL_DIR}/sqlite3.c>"
 )
 
-install(TARGETS sqlite3_amalgamation_sources
-    EXPORT Sqlite3Targets
-    COMPONENT AmalgamationSources
-    FILE_SET HEADERS
-    INCLUDES DESTINATION ${CMAKE_INCLUDE_INSTALL_DIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
-
 add_library(sqlite3_static STATIC)
 add_library(Sqlite3::${PROJECT_NAME} ALIAS sqlite3_static)
 
@@ -68,7 +62,7 @@ set_target_properties(sqlite3_static PROPERTIES
 )
 
 target_sources(sqlite3_static
-    PUBLIC FILE_SET HEADERS
+    INTERFACE FILE_SET HEADERS
         BASE_DIRS
             "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/sqlite3-amalgamation>"
             "$<INSTALL_INTERFACE:${CMAKE_INCLUDE_INSTALL_DIR}>"
@@ -94,7 +88,6 @@ endif()
 target_compile_features(sqlite3_static
     PRIVATE
         $<BUILD_INTERFACE:c_std_17>
-        $<INSTALL_INTERFACE:c_std_17>
 )
 
 target_compile_definitions(sqlite3_static
@@ -118,33 +111,30 @@ if(SQLITE_UINT64_TYPE)
 endif()
 
 
-function(Sqlite3_generate_sqlite_alias)
-    block(SCOPE_FOR VARIABLES)
-        set(content "#pragma once\n\n")
-        if(SQLITE_ALIAS_INCLUDE)
-            string(APPEND content "#include <${SQLITE_ALIAS_INCLUDE}>\n")
-        endif()
-        if(SQLITE_ALIAS_NAMESPACE)
-            string(APPEND content "\nnamespace ${SQLITE_ALIAS_NAMESPACE} {\n")
-        endif()
-        if(SQLITE_ALIAS_INT64_TYPE AND SQLITE_ALIAS_INT64_NAME)
-            string(APPEND content "using ${SQLITE_ALIAS_INT64_NAME} = ${SQLITE_ALIAS_INT64_TYPE};\n")
-        endif()
-        if(SQLITE_ALIAS_UINT64_TYPE AND SQLITE_ALIAS_UINT64_NAME)
-            string(APPEND content "using ${SQLITE_ALIAS_UINT64_NAME} = ${SQLITE_ALIAS_UINT64_TYPE};\n")
-        endif()
-        if(SQLITE_ALIAS_NAMESPACE)
-            string(APPEND content "}\n")
-        endif()
-        file(CONFIGURE OUTPUT sqlite3-amalgamation/sqlite3_aliases.hpp
-            CONTENT "${content}"
-        )
-        add_custom_target(generate_alias_header
-            DEPENDS sqlite3-amalgamation/sqlite3_aliases.hpp
-        )
-    endblock()
-endfunction()
-cmake_language(DEFER CALL Sqlite3_generate_sqlite_alias)
+block(SCOPE_FOR VARIABLES)
+    set(content "#pragma once\n\n")
+    if(SQLITE_ALIAS_INCLUDE)
+        string(APPEND content "#include <${SQLITE_ALIAS_INCLUDE}>\n")
+    endif()
+    if(SQLITE_ALIAS_NAMESPACE)
+        string(APPEND content "\nnamespace ${SQLITE_ALIAS_NAMESPACE} {\n")
+    endif()
+    if(SQLITE_ALIAS_INT64_TYPE AND SQLITE_ALIAS_INT64_NAME)
+        string(APPEND content "using ${SQLITE_ALIAS_INT64_NAME} = ${SQLITE_ALIAS_INT64_TYPE};\n")
+    endif()
+    if(SQLITE_ALIAS_UINT64_TYPE AND SQLITE_ALIAS_UINT64_NAME)
+        string(APPEND content "using ${SQLITE_ALIAS_UINT64_NAME} = ${SQLITE_ALIAS_UINT64_TYPE};\n")
+    endif()
+    if(SQLITE_ALIAS_NAMESPACE)
+        string(APPEND content "}\n")
+    endif()
+    file(CONFIGURE OUTPUT sqlite3-amalgamation/sqlite3_aliases.hpp
+        CONTENT "${content}"
+    )
+    add_custom_target(generate_alias_header
+        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/sqlite3-amalgamation/sqlite3_aliases.hpp"
+    )
+endblock()
 
 add_library(sqlite3_cxx_aliases INTERFACE)
 add_library(Sqlite3::Aliases ALIAS sqlite3_cxx_aliases)
@@ -154,7 +144,6 @@ set_target_properties(sqlite3_cxx_aliases PROPERTIES
     OUTPUT_NAME Aliases
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
-    POSITION_INDEPENDENT_CODE ON
 )
 
 target_sources(sqlite3_cxx_aliases
@@ -168,26 +157,35 @@ target_sources(sqlite3_cxx_aliases
 
 add_dependencies(sqlite3_cxx_aliases generate_alias_header)
 
-install(TARGETS sqlite3_static
+install(TARGETS sqlite3_amalgamation_sources
     EXPORT Sqlite3Targets
     FILE_SET HEADERS
-    INCLUDES DESTINATION ${CMAKE_INCLUDE_INSTALL_DIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INCLUDE_INSTALL_DIR}
+)
+
+install(TARGETS sqlite3_static
+    EXPORT Sqlite3Targets
+    FILE_SET HEADERS
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INCLUDE_INSTALL_DIR}
 )
 
 install(TARGETS sqlite3_cxx_aliases
     EXPORT Sqlite3Targets
     FILE_SET HEADERS
-    INCLUDES DESTINATION ${CMAKE_INCLUDE_INSTALL_DIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INCLUDE_INSTALL_DIR}
 )
 
 install(EXPORT ${PROJECT_NAME}Targets
-    FILE ${PROJECT_NAME}Targets.cmake
+    FILE Sqlite3Targets.cmake
     NAMESPACE Sqlite3::
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
 )
@@ -210,7 +208,7 @@ install(
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
 )
 
-export(EXPORT ${PROJECT_NAME}Targets
+export(EXPORT Sqlite3Targets
     FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
     NAMESPACE Sqlite3::
 )
