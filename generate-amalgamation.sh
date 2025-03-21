@@ -6,7 +6,7 @@ readonly build_rel_dir="build"
 readonly amalgamation_dest_rel_dir="sqlite3-amalgamation"
 
 function configure() {
-  (cd ${build_rel_dir} && ../sqlite/configure)
+  (cd ${build_rel_dir} && ../sqlite/configure --enable-all)
 }
 
 function make-amalgamation() {
