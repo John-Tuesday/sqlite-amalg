@@ -53,6 +53,11 @@ target_compile_options(sqlite3_amalgamation_sources
         "$<BUILD_INTERFACE:-w>"
 )
 
+target_compile_features(sqlite3_amalgamation_sources
+    PRIVATE
+        c_std_99
+)
+
 install(TARGETS sqlite3_amalgamation_sources
     EXPORT Sqlite3Targets
     FILE_SET HEADERS
