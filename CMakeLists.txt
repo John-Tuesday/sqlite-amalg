@@ -43,6 +43,7 @@ target_sources(sqlite3_amalgamation_sources
             "$<INSTALL_INTERFACE:${CMAKE_INCLUDE_INSTALL_DIR}>"
         FILES
             sqlite3-amalgamation/sqlite3.h
+            sqlite3-amalgamation/sqlite_cfg.h
     PRIVATE
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/sqlite3-amalgamation/sqlite3.c>"
         "$<INSTALL_INTERFACE:${CMAKE_INCLUDE_INSTALL_DIR}/sqlite3.c>"
