@@ -26,17 +26,15 @@ set(SQLITE_RECOMMENDED_OPTIONS
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-add_library(sqlite3_amalgamation_sources OBJECT)
-add_library(Sqlite3::AmalgamationSources ALIAS sqlite3_amalgamation_sources)
-
-set_target_properties(sqlite3_amalgamation_sources PROPERTIES
-    EXPORT_NAME ${PROJECT_NAME}AmalgamationSouces
-    OUTPUT_NAME ${PROJECT_NAME}AmalgamationSouces
+add_library(sqlite3_amalgamation_headers INTERFACE)
+add_library(Sqlite3::AmalgamationHeaders ALIAS sqlite3_amalgamation_headers)
+set_target_properties(sqlite3_amalgamation_headers PROPERTIES
+    EXPORT_NAME Sqlite3AmalgamationHeaders
+    OUTPUT_NAME Sqlite3AmalgamationHeaders
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
-
-target_sources(sqlite3_amalgamation_sources
+target_sources(sqlite3_amalgamation_headers
     PUBLIC FILE_SET HEADERS
         BASE_DIRS
             "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/sqlite3-amalgamation>"
@@ -44,19 +42,41 @@ target_sources(sqlite3_amalgamation_sources
         FILES
             sqlite3-amalgamation/sqlite3.h
             sqlite3-amalgamation/sqlite_cfg.h
-    PRIVATE
+)
+target_compile_features(sqlite3_amalgamation_headers
+    INTERFACE
+        c_std_99
+)
+
+add_library(sqlite3_amalgamation_sources INTERFACE)
+add_library(Sqlite3::AmalgamationSources ALIAS sqlite3_amalgamation_sources)
+set_target_properties(sqlite3_amalgamation_sources PROPERTIES
+    EXPORT_NAME Sqlite3AmalgamationSources
+    OUTPUT_NAME Sqlite3AmalgamationSources
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+)
+target_sources(sqlite3_amalgamation_sources
+    INTERFACE
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/sqlite3-amalgamation/sqlite3.c>"
         "$<INSTALL_INTERFACE:${CMAKE_INCLUDE_INSTALL_DIR}/sqlite3.c>"
 )
-
+target_link_libraries(sqlite3_amalgamation_sources
+    INTERFACE
+        Sqlite3::AmalgamationHeaders
+)
 target_compile_options(sqlite3_amalgamation_sources
-    PRIVATE
+    INTERFACE
         "$<BUILD_INTERFACE:-w>"
 )
 
-target_compile_features(sqlite3_amalgamation_sources
-    PRIVATE
-        c_std_99
+install(TARGETS sqlite3_amalgamation_headers
+    EXPORT Sqlite3Targets
+    FILE_SET HEADERS
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INCLUDE_INSTALL_DIR}
 )
 
 install(TARGETS sqlite3_amalgamation_sources
@@ -74,7 +94,7 @@ install(EXPORT ${PROJECT_NAME}Targets
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
 )
 
-configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Sqlite3Config.cmake.in
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}Config.cmake.in
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
     INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
 )
